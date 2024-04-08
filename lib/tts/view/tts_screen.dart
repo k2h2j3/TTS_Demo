@@ -11,10 +11,12 @@ class TtsScreen extends StatefulWidget {
 }
 
 class _TtsScreenState extends State<TtsScreen> {
+  late TtsSettingsProvider ttsSettings;
   FlutterTts flutterTts = FlutterTts();
 
   String language = "ko-KR";
-  Map<String, String> voice = {"name": "ko-kr-x-kob-local", "locale": "ko-KR"};
+  Map<String, String> voicewoman = {"name": "ko-kr-x-kob-local", "locale": "ko-KR"};
+  Map<String, String> voiceman = {"name": "ko-kr-x-kod-local", "locale": "ko-KR"};
   String engine = "com.google.android.tts";
   double volume = 0.8;
   double pitch = 1.0;
@@ -25,12 +27,29 @@ class _TtsScreenState extends State<TtsScreen> {
   @override
   void initState() {
     super.initState();
+    ttsSettings = Provider.of<TtsSettingsProvider>(context, listen: false);
     initTts();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    ttsSettings.addListener(initTts);
+  }
+
+  @override
+  void dispose() {
+    ttsSettings.removeListener(initTts);
+    super.dispose();
   }
 
   initTts() async {
     flutterTts.setLanguage(language);
-    flutterTts.setVoice(voice);
+    if (ttsSettings.voiceType == 'male') {
+      flutterTts.setVoice(voiceman);
+    } else if (ttsSettings.voiceType == 'female') {
+      flutterTts.setVoice(voicewoman);
+    }
     flutterTts.setEngine(engine);
     flutterTts.setVolume(volume);
     flutterTts.setPitch(pitch);
@@ -38,6 +57,10 @@ class _TtsScreenState extends State<TtsScreen> {
   }
 
   Future _speak(String text) async {
+    print('Reading selected text');
+    print('readingRange: ${ttsSettings.readingRange}');
+    print('Language: $language');
+    print('Voice: ${ttsSettings.voiceType == 'male' ? voiceman['name'] : voicewoman['name']}');
     if (text.isNotEmpty) {
       final ttsSettings = Provider.of<TtsSettingsProvider>(context, listen: false);
       if (ttsSettings.readingRange == 'all') {
@@ -45,6 +68,7 @@ class _TtsScreenState extends State<TtsScreen> {
       } else if (ttsSettings.readingRange == 'selected') {
         flutterTts.speak(ttsSettings.selectedText);
       } else if (ttsSettings.readingRange == 'mute') {
+        print('TTS is muted');
         // TTS 기능 동작하지 않음
         return;
       }
